@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>קורא ספרים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700&family=Heebo:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ===== ROOT VARIABLES ===== */
+:root {
+  --bg-page:        #f0ebe0;
+  --bg-book:        #faf6ee;
+  --text:           #2c2416;
+  --text-muted:     #8a7a60;
+  --accent:         #6b4f2a;
+  --border:         #d4c9b0;
+  --shadow:         rgba(60,40,10,0.13);
+  --font-body:      'Frank Ruhl Libre', serif;
+  --font-size:      1.18rem;
+  --line-height:    2.1;
+  --padding-x:      72px;
+  --padding-y:      56px;
+  --page-height:    70vh;
+  --column-gap:     40px;
+  --text-align:        justify;
+  --paragraph-spacing: 1em;
+  --text-indent:        1.6em;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.4s, color 0.4s;
+}
+
+/* ===== TOOLBAR ===== */
+#toolbar {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  gap: 10px;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+#toolbar.hidden { opacity: 0; pointer-events: none; }
+.tb-group { display: flex; align-items: center; gap: 8px; }
+.tb-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  padding: 5px 11px;
+  transition: background 0.2s, color 0.2s;
+}
+.tb-btn:hover { background: var(--border); color: var(--text); }
+.tb-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+#book-title-bar {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  font-weight: 300;
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== READING AREA ===== */
+.reading-area {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: max-width 0.3s;
+}
+.reading-area.wide { max-width: min(980px, 97vw); }
+
+/* ===== BOOK ===== */
+#book {
+  width: 100%;
+  max-width: 680px;
+  background: var(--bg-book);
+  box-shadow: 0 4px 40px var(--shadow), 0 1px 0 var(--border);
+  border-radius: 2px;
+  padding: var(--padding-y) var(--padding-x);
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: background 0.4s, box-shadow 0.4s, max-width 0.3s;
+}
+.reading-area.wide #book { max-width: min(920px, 95vw); }
+
+#book::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+  background: linear-gradient(to left, transparent, var(--accent), transparent);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.4;
+}
+
+#book.mode-single,
+#book.mode-double {
+  min-height: unset;
+}
+
+/* ===== PAGE VIEWPORT ===== */
+#page-viewport {
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+#page-scroll-wrap {
+  width: 100%;
+  height: 100%;
+}
+.mode-single #page-viewport,
+.mode-double #page-viewport {
+  height: var(--page-height);
+  overflow: hidden; 
+}
+
+/* ===== CHAPTER HEADING ===== */
+#chapter-heading {
+  display: none; /* מסתיר את הכותרת לגמרי */
+}
+/* ===== CONTENT ===== */
+#content {
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  text-align: var(--text-align); /* מחובר למשתנה דינמי */
+  direction: rtl; 
+}
+.mode-single #content,
+.mode-double #content {
+  column-fill: auto;
+  height: var(--page-height);
+  column-gap: var(--column-gap);
+}
+.mode-single #content {
+  column-count: 1;
+}
+.mode-double #content {
+  column-count: 2;
+}
+
+#content h1 {
+  font-size: 1.9em; font-weight: 700;
+  text-align: center; margin-bottom: 0.3em;
+  color: var(--accent); letter-spacing: -0.01em;
+}
+#content h2 {
+  font-size: 1.3em; font-weight: 500;
+  text-align: center; margin: 1.8em 0 1em; color: var(--text);
+}
+#content h3 {
+  font-size: 1.1em; font-weight: 500;
+  margin: 1.5em 0 0.6em; color: var(--accent);
+  border-bottom: 1px solid var(--border); padding-bottom: 4px;
+}
+#content p { margin-bottom: var(--paragraph-spacing); text-indent: var(--text-indent); }
+#content small {
+  font-size: 0.8em; color: var(--text-muted);
+  display: block; text-align: center; margin: 1.5em 0;
+}
+
+/* ===== NAV ===== */
+#nav {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0 8px;
+  gap: 16px;
+}
+.reading-area.wide #nav { max-width: min(920px, 95vw); }
+.nav-btn {
+  background: none; border: none;
+  cursor: pointer; color: var(--text-muted);
+  font-family: var(--font-body); font-size: 0.9rem;
+  display: flex; align-items: center; gap: 7px;
+  padding: 3px 14px; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-btn:hover:not(:disabled) { color: var(--text); background: var(--border); }
+.nav-btn:disabled { opacity: 0.25; cursor: default; }
+.nav-btn svg { flex-shrink: 0; }
+#page-indicator {
+  font-size: 0.78rem; color: var(--text-muted);
+  letter-spacing: 0.06em; text-align: center;
+  line-height: 1.7;
+}
+
+/* ===== UPLOAD SCREEN ===== */
+#upload-screen {
+  display: flex; flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center; padding: 40px 20px;
+  width: 100%; max-width: 560px;
+}
+#upload-screen h2 { font-size: 1.6rem; font-weight: 400; color: var(--accent); }
+#open-book-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--bg-book);
+  color: var(--text-muted);
+  font-family: var(--font-body); font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+#open-book-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(107,79,42,0.04);
+}
+
+/* ===== LIBRARY ===== */
+#library-section {
+  width: 100%; display: none; flex-direction: column; gap: 14px;
+}
+#library-section.has-books { display: flex; }
+#library-title {
+  font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 300; text-align: right;
+  padding: 0 2px;
+}
+#library-grid {
+  display: flex; flex-direction: column; gap: 6px;
+  width: 100%;
+}
+.lib-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-book); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-align: right; gap: 12px;
+}
+.lib-item:hover { border-color: var(--accent); background: rgba(107,79,42,0.03); }
+.lib-item-info { flex: 1; min-width: 0; }
+.lib-item-name {
+  font-size: 0.96rem; color: var(--text); font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-item-meta {
+  font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;
+}
+.lib-item-progress {
+  font-size: 0.72rem; color: var(--accent); white-space: nowrap;
+}
+.lib-item-delete {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.8rem; padding: 4px 6px;
+  border-radius: 4px; opacity: 0.5; transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.lib-item-delete:hover { opacity: 1; color: #c0392b; }
+
+
+/* ===== BOOKMARK TOAST ===== */
+#bookmark-toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--accent); color: #fff; font-size: 0.8rem;
+  padding: 7px 18px; border-radius: 20px; opacity: 0;
+  transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 200;
+  white-space: nowrap;
+}
+#bookmark-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== TOC OVERLAY ===== */
+#toc-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(30,20,5,0.45);
+  z-index: 100; align-items: flex-start;
+  justify-content: flex-start;
+}
+#toc-overlay.open { display: flex; }
+#toc-panel {
+  background: var(--bg-book);
+  width: min(340px, 90vw); height: 100vh;
+  overflow-y: auto; padding: 32px 24px;
+  box-shadow: -4px 0 30px var(--shadow);
+}
+#toc-panel h3 {
+  font-size: 0.75rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: 20px;
+}
+.toc-item {
+  display: block; width: 100%; background: none;
+  border: none; text-align: right; padding: 9px 12px;
+  border-radius: 6px; font-family: var(--font-body);
+  font-size: 0.95rem; color: var(--text);
+  cursor: pointer; transition: background 0.15s; line-height: 1.5;
+}
+.toc-item:hover { background: var(--border); }
+.toc-item.current { color: var(--accent); font-weight: 500; }
+.toc-item.h2 { padding-right: 24px; font-size: 0.88rem; }
+.toc-item.h3 { padding-right: 38px; font-size: 0.82rem; color: var(--text-muted); }
+
+/* ===== SETTINGS OVERLAY ===== */
+#settings-overlay {
+  position: fixed; inset: 0;
+  background: rgba(30,20,5,0);
+  z-index: 100; pointer-events: none;
+  transition: background 0.3s;
+}
+#settings-overlay.open {
+  background: rgba(30,20,5,0.45);
+  pointer-events: all;
+}
+#settings-panel {
+  position: absolute; top: 0; left: 0;
+  width: min(320px, 90vw); height: 100vh;
+  background: var(--bg-book); overflow-y: auto;
+  padding: 28px 22px; box-shadow: 4px 0 30px var(--shadow);
+  transform: translateX(-100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#settings-overlay.open #settings-panel {
+  transform: translateX(0);
+}
+
+.sp-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.sp-header h3 {
+  font-size: 0.72rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.sp-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.9rem;
+  padding: 4px 8px; border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.sp-close:hover { background: var(--border); color: var(--text); }
+
+.sp-section {
+  margin-bottom: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.sp-title {
+  font-size: 0.68rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted);
+  font-weight: 300; margin-bottom: 12px;
+}
+
+/* Segmented control (view mode & alignment) */
+.seg-group {
+  display: flex; border: 1px solid var(--border);
+  border-radius: 7px; overflow: hidden;
+}
+.seg-btn {
+  flex: 1; background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.8rem;
+  padding: 7px 4px;
+  border-left: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+.seg-btn:first-child { border-left: none; }
+.seg-btn:hover { background: var(--border); color: var(--text); }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+/* Select */
+select.sp-select {
+  width: 100%;
+  background: var(--bg-page); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text);
+  font-family: var(--font-body); font-size: 0.85rem;
+  padding: 7px 10px; outline: none; cursor: pointer;
+  transition: border-color 0.15s; margin-bottom: 10px;
+}
+select.sp-select:focus { border-color: var(--accent); }
+
+/* Font size row */
+.font-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.sp-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text-muted);
+  cursor: pointer; font-family: var(--font-body);
+  font-size: 0.8rem; padding: 5px 10px;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.sp-btn:hover { background: var(--border); color: var(--text); }
+#font-size-display {
+  flex: 1; text-align: center;
+  font-size: 0.82rem; color: var(--text-muted);
+}
+
+/* Local font button */
+#load-local-fonts {
+  width: 100%; margin-top: 6px;
+  background: none; border: 1px dashed var(--border);
+  border-radius: 6px; color: var(--text-muted);
+  cursor: pointer; font-family: var(--font-body);
+  font-size: 0.78rem; padding: 6px 10px;
+  transition: border-color 0.15s, color 0.15s;
+}
+#load-local-fonts:hover { border-color: var(--accent); color: var(--text); }
+#load-local-fonts:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Slider */
+.slider-wrap {
+  display: flex; align-items: center; gap: 10px;
+}
+input[type="range"] {
+  flex: 1; height: 3px; -webkit-appearance: none;
+  background: var(--border); border-radius: 2px;
+  outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  transition: transform 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+input[type="range"]::-moz-range-thumb {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+}
+.slider-val {
+  font-size: 0.75rem; color: var(--text-muted);
+  min-width: 32px; text-align: left;
+}
+
+/* Color section */
+.color-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.color-row label {
+  font-size: 0.82rem; color: var(--text-muted); min-width: 60px;
+}
+input[type="color"] {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; padding: 2px; background: none; outline: none;
+  transition: border-color 0.15s;
+}
+input[type="color"]:hover { border-color: var(--accent); }
+.presets-grid {
+  display: flex; flex-wrap: wrap; gap: 7px;
+}
+.preset-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  outline: none;
+}
+.preset-dot:hover { transform: scale(1.18); }
+.preset-dot.active { border-color: var(--accent); }
+
+/* ===== THEMES ===== */
+body.theme-night {
+  --bg-page: #18140e; --bg-book: #1f1a12;
+  --text: #d4c9a8; --text-muted: #7a6e56;
+  --accent: #c09a5a; --border: #36301f;
+  --shadow: rgba(0,0,0,0.5);
+}
+body.theme-white {
+  --bg-page: #e8e8e8; --bg-book: #ffffff;
+  --text: #1a1a1a; --text-muted: #888;
+  --accent: #444; --border: #ddd;
+  --shadow: rgba(0,0,0,0.1);
+}
+body.theme-sage {
+  --bg-page: #e4ebe3; --bg-book: #f2f7f1;
+  --text: #1e2e1c; --text-muted: #6a7d68;
+  --accent: #3a5e36; --border: #c2d4c0;
+  --shadow: rgba(30,50,28,0.1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+  #toolbar { padding: 10px 12px 6px; }
+  .mode-double #content { column-count: 1; }
+}
+
+/* ===== SEARCH BAR — fixed bottom sheet ===== */
+#search-bar {
+  position: fixed;
+  bottom: -68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  background: var(--bg-book);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -4px 28px var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  min-width: min(420px, 94vw);
+  transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  direction: rtl;
+}
+#search-bar.open { bottom: 0; }
+
+#search-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  padding: 6px 10px;
+  outline: none;
+  direction: rtl;
+  transition: border-color 0.15s;
+}
+#search-input:focus { border-color: var(--accent); }
+#search-input::placeholder { color: var(--text-muted); opacity: 0.7; }
+#search-input.no-results { border-color: #c0392b; }
+
+#search-counter {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  min-width: 52px;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+#search-counter.not-found { color: #c0392b; }
+
+.search-nav-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 5px 9px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.search-nav-btn:hover:not(:disabled) { background: var(--border); color: var(--text); }
+.search-nav-btn:disabled { opacity: 0.28; cursor: default; }
+
+/* ===== SEARCH HIGHLIGHTS ===== */
+mark.search-hit {
+  background: rgba(255, 200, 50, 0.35);
+  border-radius: 2px;
+  color: inherit;
+  padding: 0;
+}
+mark.search-hit.active {
+  background: rgba(220, 110, 0, 0.65);
+  color: #fff;
+  outline: 1.5px solid rgba(200, 90, 0, 0.7);
+  border-radius: 2px;
+}
+body.theme-night mark.search-hit        { background: rgba(180, 130, 30, 0.3); }
+body.theme-night mark.search-hit.active { background: rgba(200, 140, 40, 0.72); color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ===== UPLOAD SCREEN ===== -->
+<div id="upload-screen">
+  <h2>קורא ספרים</h2>
+
+  <button id="open-book-btn" onclick="openTauriFile()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+    </svg>
+    פתח ספר
+  </button>
+
+  <!-- Library of saved books -->
+  <div id="library-section">
+    <div id="library-title">ספרים שמורים</div>
+    <div id="library-grid"><!-- filled by JS --></div>
+  </div>
+</div>
+
+<!-- ===== BOOKMARK TOAST ===== -->
+<div id="bookmark-toast">סימנייה נשמרה</div>
+
+<!-- ===== READING AREA ===== -->
+<div class="reading-area" id="reading-area" style="display:none">
+  <div id="toolbar">
+    <div class="tb-group">
+      <button class="tb-btn" id="toc-btn" title="תוכן עניינים">☰</button>
+      <button class="tb-btn" id="close-btn" title="פתח ספר אחר">✕</button>
+    </div>
+    <div id="book-title-bar"></div>
+    <div class="tb-group">
+      <button class="tb-btn" id="search-btn" title="חיפוש (Ctrl+F)" style="display:flex;align-items:center;justify-content:center;gap:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+        </svg>
+      </button>
+      <button class="tb-btn" id="font-dec" title="הקטן גופן">א−</button>
+      <button class="tb-btn" id="font-inc" title="הגדל גופן">א+</button>
+      <button class="tb-btn" id="settings-btn" title="הגדרות">⚙</button>
+    </div>
+  </div>
+
+  <div id="book">
+    <div id="chapter-heading"></div>
+    <div id="page-viewport">
+      <div id="page-scroll-wrap">
+        <div id="content"></div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="nav">
+    <!-- כפתור קודם נמצא כעת מימין כי direction הוא rtl -->
+    <button class="nav-btn" id="btn-prev" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      קודם
+    </button>
+    
+    <span id="page-indicator"></span>
+    
+    <!-- כפתור הבא נמצא משמאל -->
+    <button class="nav-btn" id="btn-next" disabled>
+      הבא
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  </nav>
+</div>
+
+<!-- ===== TOC OVERLAY ===== -->
+<div id="toc-overlay">
+  <div id="toc-panel">
+    <h3>תוכן עניינים</h3>
+    <div id="toc-list"></div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS OVERLAY ===== -->
+<div id="settings-overlay">
+  <div id="settings-panel">
+    <div class="sp-header">
+      <h3>הגדרות</h3>
+      <button class="sp-close" id="settings-close">✕</button>
+    </div>
+
+    <!-- View mode -->
+    <div class="sp-section">
+      <div class="sp-title">מצב תצוגה</div>
+      <div class="seg-group" id="mode-group">
+        <button class="seg-btn mode-btn active" data-mode="scroll">גלילה</button>
+        <button class="seg-btn mode-btn" data-mode="single">דף יחיד</button>
+        <button class="seg-btn mode-btn" data-mode="double">שני דפים</button>
+      </div>
+    </div>
+    
+    <!-- Text Alignment -->
+    <div class="sp-section">
+      <div class="sp-title">יישור טקסט</div>
+      <div class="seg-group" id="align-group">
+        <button class="seg-btn align-btn" data-align="right">ימין</button>
+        <button class="seg-btn align-btn active" data-align="justify">בלוק</button>
+        <button class="seg-btn align-btn" data-align="center">מרכז</button>
+      </div>
+    </div>
+
+    <!-- Font family -->
+    <div class="sp-section">
+      <div class="sp-title">גופן</div>
+      <select class="sp-select" id="font-family">
+        <option value="'Frank Ruhl Libre', serif">Frank Ruhl Libre</option>
+        <option value="'Heebo', sans-serif">Heebo</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Courier New', monospace">Courier New</option>
+      </select>
+      <button id="load-local-fonts">+ טען גופנים מהמחשב (Chrome/Edge)</button>
+
+      <!-- Font size -->
+      <div class="sp-title" style="margin-top:14px">גודל טקסט</div>
+      <div class="font-row">
+        <button class="sp-btn" id="font-dec-s">א−</button>
+        <span id="font-size-display">1.18</span>
+        <button class="sp-btn" id="font-inc-s">א+</button>
+      </div>
+    </div>
+
+    <!-- Line height -->
+    <div class="sp-section">
+      <div class="sp-title">מרווח שורות</div>
+      <div class="slider-wrap">
+        <input type="range" id="lh-slider" min="1.2" max="3.2" step="0.1" value="2.1">
+        <span class="slider-val" id="lh-val">2.1</span>
+      </div>
+      <div class="sp-title" style="margin-top:14px">רווח בין פסקאות</div>
+      <div class="slider-wrap">
+        <input type="range" id="para-slider" min="0" max="2.5" step="0.1" value="1">
+        <span class="slider-val" id="para-val">1.0</span>
+      </div>
+      <div class="sp-title" style="margin-top:14px">הזחת פסקה</div>
+      <div class="slider-wrap">
+        <input type="range" id="indent-slider" min="0" max="3" step="0.1" value="1.6">
+        <span class="slider-val" id="indent-val">1.6</span>
+      </div>
+    </div>
+
+    <!-- Margins -->
+    <div class="sp-section">
+      <div class="sp-title">שוליים (אופקי)</div>
+      <div class="slider-wrap">
+        <input type="range" id="margin-slider" min="8" max="120" step="4" value="72">
+        <span class="slider-val" id="margin-val">72</span>
+      </div>
+      <div class="sp-title" style="margin-top:14px">שוליים (אנכי)</div>
+      <div class="slider-wrap">
+        <input type="range" id="margin-y-slider" min="8" max="100" step="4" value="56">
+        <span class="slider-val" id="margin-y-val">56</span>
+      </div>
+    </div>
+
+    <!-- Background color -->
+    <div class="sp-section">
+      <div class="sp-title">צבע רקע ספר</div>
+      <div class="color-row">
+        <label>בחר צבע</label>
+        <input type="color" id="bg-picker" value="#faf6ee">
+      </div>
+      <div class="presets-grid" id="color-presets">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SEARCH BAR (fixed bottom) ===== -->
+<div id="search-bar">
+  <button id="search-close" class="search-nav-btn" title="סגור (Esc)">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <input id="search-input" type="text" placeholder="חיפוש בספר..." autocomplete="off" spellcheck="false">
+  <span id="search-counter"></span>
+  <button id="search-prev" class="search-nav-btn" title="הקודם (Shift+Enter)" disabled>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+  <button id="search-next" class="search-nav-btn" title="הבא (Enter)" disabled>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let chapters    = [];
+let current     = 0;
+let bookName    = '';
+let bookId      = '';   // שם + גודל קובץ, מזהה ייחודי
+let viewMode    = 'scroll';   // 'scroll' | 'single' | 'double'
+let textAlign   = 'justify';  // 'right' | 'justify' | 'center'
+let innerPage   = 0;
+let totalInner  = 1;
+
+const SETTINGS_KEY = 'reader_settings_v3';
+const PROGRESS_KEY = 'reader_progress_v2';  // v2: מבנה מורחב
+const LIBRARY_KEY  = 'reader_library_v1';   // Tauri: path בלבד, ללא תוכן
+
+// ── Library (localStorage, path בלבד) ─────────────────
+function librarySaveBook(path, name) {
+  try {
+    const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+    const idx = lib.findIndex(b => b.path === path);
+    const entry = { path, name, lastRead: Date.now() };
+    if (idx >= 0) lib[idx] = entry;
+    else lib.unshift(entry);
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib.slice(0, 50)));
+  } catch(e) {}
+}
+function libraryGetAll() {
+  try { return JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function libraryDeleteBook(path) {
+  try {
+    const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib.filter(b => b.path !== path)));
+  } catch(e) {}
+}
+
+// ── Tauri file open ───────────────────────────────────
+async function openTauriFile() {
+  try {
+    const path = await window.__TAURI__.dialog.open({
+      multiple: false,
+      filters: [{ name: 'ספר', extensions: ['txt', 'html', 'htm'] }]
+    });
+    if (!path) return;
+    const text = await window.__TAURI__.fs.readTextFile(path);
+    bookId   = path;
+    bookName = path.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+    librarySaveBook(path, bookName);
+    loadBookText(text, bookName);
+  } catch(e) {
+    alert('שגיאה בפתיחת הקובץ:\n' + e);
+  }
+}
+
+// ── DOM ────────────────────────────────────────────────
+const uploadScreen  = document.getElementById('upload-screen');
+const readingArea   = document.getElementById('reading-area');
+const bookEl        = document.getElementById('book');
+const viewport      = document.getElementById('page-viewport');
+const scrollWrap    = document.getElementById('page-scroll-wrap');
+const content       = document.getElementById('content');
+const chHeading     = document.getElementById('chapter-heading');
+const titleBar      = document.getElementById('book-title-bar');
+const btnPrev       = document.getElementById('btn-prev');
+const btnNext       = document.getElementById('btn-next');
+const indicator     = document.getElementById('page-indicator');
+const toolbar       = document.getElementById('toolbar');
+const tocOverlay    = document.getElementById('toc-overlay');
+const tocList       = document.getElementById('toc-list');
+const settingsOverlay = document.getElementById('settings-overlay');
+const librarySection  = document.getElementById('library-section');
+const libraryGrid     = document.getElementById('library-grid');
+const bookmarkToast   = document.getElementById('bookmark-toast');
+
+// ── Color presets ──────────────────────────────────────
+const COLOR_PRESETS = [
+  { bg: '#faf6ee', page: '#f0ebe0', text: '#2c2416', muted: '#8a7a60', accent: '#6b4f2a', border: '#d4c9b0', label: 'קרם (ברירת מחדל)', dark: false },
+  { bg: '#1f1a12', page: '#18140e', text: '#d4c9a8', muted: '#7a6e56', accent: '#c09a5a', border: '#36301f', label: 'לילה', dark: true },
+  { bg: '#ffffff', page: '#e8e8e8', text: '#1a1a1a', muted: '#888',    accent: '#444',    border: '#ddd',    label: 'לבן', dark: false },
+  { bg: '#f2f7f1', page: '#e4ebe3', text: '#1e2e1c', muted: '#6a7d68', accent: '#3a5e36', border: '#c2d4c0', label: 'ירוק', dark: false },
+  { bg: '#1a1a2e', page: '#16213e', text: '#c8d0e7', muted: '#6b7a9f', accent: '#8babd4', border: '#2e3560', label: 'כחול לילה', dark: true },
+  { bg: '#fdf6e3', page: '#eee8d5', text: '#282822', muted: '#7a7060', accent: '#a05c28', border: '#d3cbb8', label: 'ספריה', dark: false },
+];
+
+// Build preset dots
+(function buildPresets() {
+  const container = document.getElementById('color-presets');
+  COLOR_PRESETS.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-dot' + (i === 0 ? ' active' : '');
+    btn.style.background = p.bg;
+    btn.style.boxShadow = 'inset 0 0 0 1px rgba(0,0,0,0.15)';
+    btn.title = p.label;
+    btn.dataset.idx = i;
+    btn.onclick = () => applyPreset(i);
+    container.appendChild(btn);
+  });
+})();
+
+// ── Color helpers ──────────────────────────────────────
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+function luminance(hex) {
+  const [r,g,b] = hexToRgb(hex);
+  return (0.299*r + 0.587*g + 0.114*b)/255;
+}
+function shiftHex(hex, delta) {
+  return '#' + hexToRgb(hex).map(v =>
+    Math.round(Math.max(0, Math.min(255, v + delta*255))).toString(16).padStart(2,'0')
+  ).join('');
+}
+
+function applyPreset(idx) {
+  const p = COLOR_PRESETS[idx];
+  applyColors(p);
+  document.getElementById('bg-picker').value = p.bg;
+  document.querySelectorAll('.preset-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  saveSettings();
+}
+
+function applyColors(p) {
+  const el = document.body;
+  el.classList.remove('theme-night','theme-white','theme-sage');
+  el.style.setProperty('--bg-book',  p.bg);
+  el.style.setProperty('--bg-page',  p.page);
+  el.style.setProperty('--text',     p.text);
+  el.style.setProperty('--text-muted', p.muted);
+  el.style.setProperty('--accent',   p.accent);
+  el.style.setProperty('--border',   p.border);
+}
+
+function applyCustomColor(hex) {
+  const lum = luminance(hex);
+  const dark = lum < 0.5;
+  const page  = shiftHex(hex, dark ? 0.05 : -0.05);
+  applyColors({
+    bg: hex, page,
+    text:   dark ? '#d4c9a8' : '#2c2416',
+    muted:  dark ? '#7a6e56' : '#8a7a60',
+    accent: dark ? '#c09a5a' : '#6b4f2a',
+    border: dark ? shiftHex(hex, 0.12) : shiftHex(hex, -0.12),
+  });
+  document.querySelectorAll('.preset-dot').forEach(d => d.classList.remove('active'));
+  saveSettings();
+}
+
+// ── Settings persist ───────────────────────────────────
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+
+    if (s.fontSize)    { document.documentElement.style.setProperty('--font-size', s.fontSize); updateFontDisplay(); }
+    if (s.fontFamily)  { document.documentElement.style.setProperty('--font-body', s.fontFamily); trySetSelect('font-family', s.fontFamily); }
+    if (s.lineHeight)  { document.documentElement.style.setProperty('--line-height', s.lineHeight); document.getElementById('lh-slider').value = s.lineHeight; document.getElementById('lh-val').textContent = s.lineHeight; }
+    if (s.paraSpacing !== undefined) { document.documentElement.style.setProperty('--paragraph-spacing', s.paraSpacing+'em'); document.getElementById('para-slider').value = s.paraSpacing; document.getElementById('para-val').textContent = parseFloat(s.paraSpacing).toFixed(1); }
+    if (s.textIndent  !== undefined) { document.documentElement.style.setProperty('--text-indent', s.textIndent+'em'); document.getElementById('indent-slider').value = s.textIndent; document.getElementById('indent-val').textContent = parseFloat(s.textIndent).toFixed(1); }
+    if (s.marginX)     { document.documentElement.style.setProperty('--padding-x', s.marginX+'px'); document.getElementById('margin-slider').value = s.marginX; document.getElementById('margin-val').textContent = s.marginX; }
+    if (s.marginY)     { document.documentElement.style.setProperty('--padding-y', s.marginY+'px'); document.getElementById('margin-y-slider').value = s.marginY; document.getElementById('margin-y-val').textContent = s.marginY; }
+    if (s.viewMode)    { viewMode = s.viewMode; updateViewModeBtns(); }
+    if (s.textAlign)   { textAlign = s.textAlign; applyTextAlign(); }
+    if (s.presetIdx !== undefined) { applyPreset(s.presetIdx); }
+    else if (s.customBg) { applyCustomColor(s.customBg); document.getElementById('bg-picker').value = s.customBg; }
+  } catch(e) {}
+}
+
+function saveSettings() {
+  const style = getComputedStyle(document.documentElement);
+  const activePreset = [...document.querySelectorAll('.preset-dot')].findIndex(d => d.classList.contains('active'));
+  const customBg = activePreset === -1 ? document.getElementById('bg-picker').value : null;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+    fontSize:   style.getPropertyValue('--font-size').trim(),
+    fontFamily: style.getPropertyValue('--font-body').trim(),
+    lineHeight: style.getPropertyValue('--line-height').trim(),
+    paraSpacing: parseFloat(document.getElementById('para-slider').value),
+    textIndent:  parseFloat(document.getElementById('indent-slider').value),
+    marginX:    parseInt(style.getPropertyValue('--padding-x')) || 72,
+    marginY:    parseInt(style.getPropertyValue('--padding-y')) || 56,
+    viewMode,
+    textAlign,
+    presetIdx:  activePreset >= 0 ? activePreset : undefined,
+    customBg,
+  }));
+}
+
+// ── Progress / Bookmark ────────────────────────────────
+function saveProgress(id, data) {
+  // data = { chapter, innerPage, scrollTop }
+  try {
+    const p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+    p[id] = { ...data, savedAt: Date.now() };
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+  } catch(e) {}
+}
+function loadProgress(id) {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+    return p[id] || { chapter: 0, innerPage: 0, scrollTop: 0 };
+  } catch(e) { return { chapter: 0, innerPage: 0, scrollTop: 0 }; }
+}
+
+// שמירה אוטומטית תוך-כדי קריאה
+let autoSaveTimer;
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    if (!bookId) return;
+    const scrollTop = viewMode === 'scroll' ? window.scrollY : 0;
+    saveProgress(bookId, { chapter: current, innerPage, scrollTop });
+  }, 800);
+}
+
+// toast קצר
+let toastTimer;
+function showToast(msg) {
+  bookmarkToast.textContent = msg;
+  bookmarkToast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => bookmarkToast.classList.remove('show'), 2200);
+}
+
+// ── Library UI ─────────────────────────────────────────
+async function refreshLibrary() {
+  const books = libraryGetAll();
+  if (!books.length) {
+    librarySection.classList.remove('has-books');
+    return;
+  }
+  librarySection.classList.add('has-books');
+  libraryGrid.innerHTML = '';
+  const allProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+
+  books.forEach(book => {
+    const prog = allProgress[book.path];
+    let metaText = '';
+    if (prog) {
+      const d = new Date(prog.savedAt);
+      metaText = `נקרא לאחרונה: ${d.toLocaleDateString('he-IL')}`;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'lib-item';
+    item.innerHTML = `
+      <div class="lib-item-info">
+        <div class="lib-item-name">${escHtml(book.name)}</div>
+        ${metaText ? `<div class="lib-item-meta">${metaText}</div>` : ''}
+      </div>
+      ${prog && prog.chapter > 0 ? `<div class="lib-item-progress">פרק ${prog.chapter + 1}</div>` : ''}
+      <button class="lib-item-delete" title="הסר מהספרייה">✕</button>
+    `;
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('lib-item-delete')) return;
+      loadFromLibrary(book.path, book.name);
+    });
+    item.querySelector('.lib-item-delete').addEventListener('click', e => {
+      e.stopPropagation();
+      libraryDeleteBook(book.path);
+      refreshLibrary();
+    });
+    libraryGrid.appendChild(item);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadFromLibrary(path, name) {
+  try {
+    const text = await window.__TAURI__.fs.readTextFile(path);
+    bookId   = path;
+    bookName = name;
+    librarySaveBook(path, name); // עדכן lastRead
+    loadBookText(text, name);
+  } catch(e) {
+    alert('הקובץ לא נמצא. אולי הועבר או נמחק.');
+    libraryDeleteBook(path);
+    refreshLibrary();
+  }
+}
+
+// הרסטורציה של מיקום — נקראת מתוך recalcPages אחרי עיצוב
+let pendingRestore = null;
+function restorePending() {
+  if (!pendingRestore) return;
+  const { chapter, innerPage: ip, scrollTop } = pendingRestore;
+  pendingRestore = null;
+
+  if (viewMode === 'scroll') {
+    window.scrollTo({ top: scrollTop || 0 });
+  } else {
+    const safeIp = Math.min(ip || 0, totalInner - 1);
+    if (safeIp > 0) goToInnerPage(safeIp, false);
+  }
+}
+
+function trySetSelect(id, val) {
+  const sel = document.getElementById(id);
+  if (sel) { [...sel.options].forEach(o => { if (o.value === val) sel.value = val; }); }
+}
+
+// ── Font size ──────────────────────────────────────────
+function getFontSize() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-size')) || 1.18;
+}
+function updateFontDisplay() {
+  document.getElementById('font-size-display').textContent = getFontSize().toFixed(2);
+}
+function changeFontSize(delta) {
+  const v = Math.max(0.8, Math.min(2.5, getFontSize() + delta));
+  document.documentElement.style.setProperty('--font-size', v.toFixed(2) + 'rem');
+  updateFontDisplay();
+  recalcPagesLater();
+  saveSettings();
+}
+
+// ── Text Alignment ─────────────────────────────────────
+function applyTextAlign() {
+  document.documentElement.style.setProperty('--text-align', textAlign);
+  document.querySelectorAll('.align-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.align === textAlign);
+  });
+}
+
+// ── Page mode & Pagination ─────────────────────────────
+function computePageHeight() {
+  const toolbarH = toolbar.offsetHeight || 52;
+  const navH     = document.getElementById('nav').offsetHeight || 72;
+  const padY     = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--padding-y')) || 56;
+  
+  // החישוב החדש: ללא הכותרת הפנימית שהוסתרה
+  const total    = window.innerHeight - toolbarH - navH - (padY * 2) - 8;
+  
+  return Math.max(180, total);
+}
+
+function getColumnGap() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--column-gap')) || 40;
+}
+
+function applyViewMode(skipRecalc = false) {
+  bookEl.classList.remove('mode-scroll','mode-single','mode-double');
+  bookEl.classList.add('mode-' + viewMode);
+  readingArea.classList.toggle('wide', viewMode === 'double');
+
+  if (viewMode !== 'scroll') {
+    const ph = computePageHeight();
+    document.documentElement.style.setProperty('--page-height', ph + 'px');
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  innerPage = 0;
+  scrollWrap.style.transition = 'none';
+  scrollWrap.style.transform = 'translateX(0)';
+  if (!skipRecalc) recalcPagesLater();
+}
+
+let recalcTimer;
+function recalcPagesLater() {
+  clearTimeout(recalcTimer);
+  recalcTimer = setTimeout(recalcPages, 120);
+}
+
+function recalcPages() {
+  if (viewMode === 'scroll') {
+    totalInner = 1;
+    scrollWrap.style.transform = 'none';
+    updateNav();
+    restorePending();
+    return;
+  }
+  
+  scrollWrap.style.transition = 'none';
+  scrollWrap.style.transform = 'none';
+  void scrollWrap.offsetWidth; // Force Reflow
+
+  const pw = viewport.clientWidth;
+  if (pw <= 0) return;
+
+  const gap = getColumnGap();
+  const shift = pw + gap;
+  const totalWidth = content.scrollWidth;
+
+  totalInner = Math.max(1, Math.ceil(totalWidth / shift));
+  innerPage  = Math.min(innerPage, totalInner - 1);
+  
+  applyPagePosition(false);
+  updateNav();
+  restorePending();
+}
+
+function applyPagePosition(animate) {
+  if (viewMode === 'scroll') return;
+  
+  const pw = viewport.clientWidth;
+  const gap = getColumnGap();
+  const shift = pw + gap;
+  
+  const targetX = innerPage * shift;
+
+  if (!animate) {
+    scrollWrap.style.transition = 'none';
+    scrollWrap.style.transform = `translateX(${targetX}px)`;
+    void scrollWrap.offsetWidth;
+  } else {
+    scrollWrap.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+    scrollWrap.style.transform = `translateX(${targetX}px)`;
+  }
+}
+
+function goToInnerPage(idx, animate = true) {
+  if (viewMode === 'scroll') return;
+  innerPage = Math.max(0, Math.min(idx, totalInner - 1));
+  applyPagePosition(animate);
+  updateNav();
+}
+
+function updateViewModeBtns() {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === viewMode));
+}
+
+// ── Render chapter ─────────────────────────────────────
+function renderChapter(idx, restorePos) {
+  current = Math.max(0, Math.min(idx, chapters.length - 1));
+  const ch = chapters[current];
+
+  chHeading.textContent = ch.title || '';
+  // אם יש חיפוש פעיל ויש markedHtml מוכן — השתמש בו ישירות (ללא הבזק)
+  content.innerHTML = (searchState.query && ch.markedHtml) ? ch.markedHtml : (ch.html || '');
+
+  innerPage = 0;
+  titleBar.textContent = bookName + (ch.title ? ` · ${ch.title}` : '');
+
+  // שמירת התקדמות — לא בזמן קפיצת חיפוש
+  if (bookId && !searchState.query) saveProgress(bookId, { chapter: current, innerPage: 0, scrollTop: 0 });
+
+  document.querySelectorAll('.toc-item').forEach((el, i) =>
+    el.classList.toggle('current', i === current));
+
+  if (viewMode === 'scroll') {
+    window.scrollTo({ top: 0, behavior: restorePos ? 'instant' : 'smooth' });
+    totalInner = 1;
+    updateNav();
+    if (restorePos && restorePos.scrollTop) {
+      requestAnimationFrame(() => window.scrollTo({ top: restorePos.scrollTop }));
+    }
+    // אם יש קפיצת חיפוש ממתינה
+    if (searchState._pendingJump !== null) {
+      const pj = searchState._pendingJump;
+      searchState._pendingJump = null;
+      // הmarks כבר ב-DOM (מ-markedHtml)
+      searchState.hits = [...content.querySelectorAll('mark.search-hit')];
+      requestAnimationFrame(() => {
+        const idx2 = pj === 'last' ? searchState.hits.length - 1 : 0;
+        jumpToHit(idx2);
+      });
+    }
+  } else {
+    if (restorePos && restorePos.innerPage) pendingRestore = restorePos;
+    scrollWrap.style.transition = 'none';
+    scrollWrap.style.transform = 'translateX(0)';
+    recalcPagesLater();
+    // אם יש קפיצת חיפוש ממתינה — אחרי recalc
+    if (searchState._pendingJump !== null) {
+      const pj = searchState._pendingJump;
+      searchState._pendingJump = null;
+      searchState.hits = [...content.querySelectorAll('mark.search-hit')];
+      setTimeout(() => {
+        const idx2 = pj === 'last' ? searchState.hits.length - 1 : 0;
+        jumpToHit(idx2);
+      }, 160);
+    }
+  }
+}
+
+// ── Nav ────────────────────────────────────────────────
+function updateNav() {
+  if (viewMode === 'scroll') {
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === chapters.length - 1;
+    indicator.textContent = chapters.length > 1 ? `${current + 1} / ${chapters.length}` : '';
+  } else {
+    btnPrev.disabled = innerPage === 0 && current === 0;
+    btnNext.disabled = innerPage >= totalInner - 1 && current === chapters.length - 1;
+    const pPart = totalInner > 1 ? `עמ׳ ${innerPage+1}/${totalInner}` : '';
+    indicator.innerHTML = pPart;
+  }
+}
+
+btnNext.onclick = () => {
+  if (viewMode !== 'scroll' && innerPage < totalInner - 1) { goToInnerPage(innerPage + 1); scheduleAutoSave(); }
+  else if (current < chapters.length - 1) renderChapter(current + 1);
+};
+btnPrev.onclick = () => {
+  if (viewMode !== 'scroll' && innerPage > 0) { goToInnerPage(innerPage - 1); scheduleAutoSave(); }
+  else if (current > 0) renderChapter(current - 1);
+};
+
+// שמירה אוטומטית בגלילה
+window.addEventListener('scroll', scheduleAutoSave, { passive: true });
+
+// ── TOC ────────────────────────────────────────────────
+function closeToc() { tocOverlay.classList.remove('open'); }
+function buildToc() {
+  tocList.innerHTML = '';
+  chapters.forEach((ch, i) => {
+    if (!ch.title) return;
+    const btn = document.createElement('button');
+    btn.className = `toc-item h${ch.level}`;
+    btn.textContent = ch.title;
+    btn.onclick = () => { renderChapter(i); closeToc(); };
+    tocList.appendChild(btn);
+  });
+}
+document.getElementById('toc-btn').onclick = () => tocOverlay.classList.toggle('open');
+
+tocOverlay.addEventListener('click', e => { if (e.target === tocOverlay) closeToc(); });
+
+// ── Settings panel ─────────────────────────────────────
+function openSettings()  { settingsOverlay.classList.add('open'); }
+function closeSettings() { settingsOverlay.classList.remove('open'); }
+
+document.getElementById('settings-btn').onclick   = openSettings;
+document.getElementById('settings-close').onclick = closeSettings;
+settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeSettings(); });
+
+// View mode buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.onclick = function() {
+    viewMode = this.dataset.mode;
+    updateViewModeBtns();
+    applyViewMode();
+    saveSettings();
+  };
+});
+
+// Alignment buttons
+document.querySelectorAll('.align-btn').forEach(btn => {
+  btn.onclick = function() {
+    textAlign = this.dataset.align;
+    applyTextAlign();
+    saveSettings();
+  };
+});
+
+// Font family
+document.getElementById('font-family').onchange = function() {
+  document.documentElement.style.setProperty('--font-body', this.value);
+  recalcPagesLater();
+  saveSettings();
+};
+
+// Local fonts (Chrome/Edge only)
+document.getElementById('load-local-fonts').onclick = async function() {
+  if (!('queryLocalFonts' in window)) {
+    alert('טעינת גופנים מקומיים זמינה ב-Chrome ו-Edge בלבד.');
+    return;
+  }
+  try {
+    this.textContent = 'טוען...';
+    this.disabled = true;
+    const fonts = await window.queryLocalFonts();
+    const families = [...new Set(fonts.map(f => f.family))].sort((a,b) => a.localeCompare(b, 'he'));
+    const select = document.getElementById('font-family');
+    [...select.options].forEach(o => { if (o.dataset.local) o.remove(); });
+    families.forEach(family => {
+      const opt = document.createElement('option');
+      opt.value = `'${family}', sans-serif`;
+      opt.textContent = family;
+      opt.dataset.local = '1';
+      select.appendChild(opt);
+    });
+    this.textContent = `✓ נטענו ${families.length} גופנים`;
+    this.disabled = false;
+  } catch(e) {
+    this.textContent = 'שגיאה בטעינה';
+    this.disabled = false;
+    if (e.name !== 'NotAllowedError') console.error(e);
+  }
+};
+
+// Font size
+document.getElementById('font-dec').onclick   = () => changeFontSize(-0.08);
+document.getElementById('font-inc').onclick   = () => changeFontSize(+0.08);
+document.getElementById('font-dec-s').onclick = () => changeFontSize(-0.08);
+document.getElementById('font-inc-s').onclick = () => changeFontSize(+0.08);
+
+// Line height slider
+document.getElementById('lh-slider').oninput = function() {
+  document.documentElement.style.setProperty('--line-height', this.value);
+  document.getElementById('lh-val').textContent = parseFloat(this.value).toFixed(1);
+  recalcPagesLater();
+  saveSettings();
+};
+
+document.getElementById('para-slider').oninput = function() {
+  document.documentElement.style.setProperty('--paragraph-spacing', this.value + 'em');
+  document.getElementById('para-val').textContent = parseFloat(this.value).toFixed(1);
+  recalcPagesLater();
+  saveSettings();
+};
+
+document.getElementById('indent-slider').oninput = function() {
+  document.documentElement.style.setProperty('--text-indent', this.value + 'em');
+  document.getElementById('indent-val').textContent = parseFloat(this.value).toFixed(1);
+  recalcPagesLater();
+  saveSettings();
+};
+
+// Margins slider
+document.getElementById('margin-slider').oninput = function() {
+  document.documentElement.style.setProperty('--padding-x', this.value + 'px');
+  document.getElementById('margin-val').textContent = this.value;
+  if (viewMode !== 'scroll') document.documentElement.style.setProperty('--page-height', computePageHeight() + 'px');
+  recalcPagesLater();
+  saveSettings();
+};
+
+document.getElementById('margin-y-slider').oninput = function() {
+  document.documentElement.style.setProperty('--padding-y', this.value + 'px');
+  document.getElementById('margin-y-val').textContent = this.value;
+  if (viewMode !== 'scroll') document.documentElement.style.setProperty('--page-height', computePageHeight() + 'px');
+  recalcPagesLater();
+  saveSettings();
+};
+
+// Background color picker
+document.getElementById('bg-picker').oninput = function() {
+  applyCustomColor(this.value);
+};
+
+// ── Parse book ─────────────────────────────────────────
+function parseBook(text) {
+  const parts = text.split(/(?=<h[123][^>]*>)/i);
+  const result = [];
+  let bookTitle = '';
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const m = part.match(/^<(h[123])[^>]*>(.*?)<\/h[123]>/i);
+    if (m) {
+      const level = parseInt(m[1][1]);
+      const title = m[2].replace(/<[^>]+>/g,'').trim();
+      if (level === 1 && !bookTitle) bookTitle = title;
+      const body = part.replace(/^<h[123][^>]*>.*?<\/h[123]>/i,'').trim();
+      result.push({ title, level, html: wrapParagraphs(body) });
+    } else {
+      if (result.length === 0) result.push({ title:'', level:0, html: wrapParagraphs(part.trim()) });
+      else result[result.length-1].html += wrapParagraphs(part.trim());
+    }
+  }
+  return { chapters: result, bookTitle };
+}
+
+function wrapParagraphs(html) {
+  return html.split('\n').map(line => {
+    line = line.trim();
+    if (!line) return '';
+    if (/^<[a-z]/i.test(line)) return line;
+    return `<p>${line}</p>`;
+  }).filter(Boolean).join('\n');
+}
+
+// ── Book loading ───────────────────────────────────────
+function loadBookText(text, nameHint) {
+  const { chapters: chs, bookTitle } = parseBook(text);
+  if (!chs.length) { alert('לא נמצאו פרקים בקובץ'); return; }
+  chapters = chs;
+  if (bookTitle) bookName = bookTitle;
+  else if (nameHint) bookName = nameHint;
+
+  buildToc();
+  uploadScreen.style.display = 'none';
+  readingArea.style.display  = 'flex';
+  applyViewMode(true);  // הגדרת מצב תצוגה ללא recalc — renderChapter יטפל בזה
+
+  const prog = loadProgress(bookId);
+  renderChapter(prog.chapter || 0, prog);
+}
+
+// ── Toolbar hide on idle ───────────────────────────────
+let toolbarTimer;
+function resetToolbarTimer() {
+  toolbar.classList.remove('hidden');
+  clearTimeout(toolbarTimer);
+  // אל תסתיר טולבר כשהחיפוש פתוח
+  toolbarTimer = setTimeout(() => {
+    if (!document.getElementById('search-bar').classList.contains('open'))
+      toolbar.classList.add('hidden');
+  }, 3500);
+}
+document.addEventListener('mousemove', resetToolbarTimer);
+document.addEventListener('touchstart', resetToolbarTimer);
+
+// ── Keyboard ───────────────────────────────────────────
+// ── Ctrl+F ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); openSearch(); return; }
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowDown') && !btnNext.disabled) btnNext.click();
+  if ((e.key === 'ArrowRight' || e.key === 'ArrowUp') && !btnPrev.disabled) btnPrev.click();
+});
+
+// ── Resize ─────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (viewMode !== 'scroll') {
+    document.documentElement.style.setProperty('--page-height', computePageHeight() + 'px');
+    recalcPagesLater();
+  }
+});
+
+// ── Close book ─────────────────────────────────────────
+document.getElementById('close-btn').onclick = () => {
+  if (bookId) {
+    const scrollTop = viewMode === 'scroll' ? window.scrollY : 0;
+    if (!searchState.query) saveProgress(bookId, { chapter: current, innerPage, scrollTop });
+  }
+  closeSearch();
+  chapters = []; current = 0; bookId = '';
+  readingArea.style.display  = 'none';
+  uploadScreen.style.display = 'flex';
+  refreshLibrary();
+};
+
+// ══════════════════════════════════════════════════════
+// ── SEARCH ENGINE ─────────────────────────────────────
+// ══════════════════════════════════════════════════════
+
+// מצב החיפוש
+const searchState = {
+  query:         '',
+  hits:          [],   // <mark> elements בפרק הנוכחי
+  current:       -1,
+  chapterCounts: [],   // [{ chapterIdx, count }] לכל הספר
+  _pendingJump:  null, // 'first' | 'last' — לאחר מעבר פרק
+};
+let searchDebounceTimer = null;
+
+// ── Regex עם ניקוד ────────────────────────────────────
+function buildNiqqudRegex(q) {
+  if (!q) return null;
+  const niq = '[\u05B0-\u05C7\u05F0-\u05F4]*';
+  const escaped = [...q].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + niq).join('');
+  return new RegExp(escaped, 'g');
+}
+
+// ── סימון HTML של פרק (שמור ב-ch.markedHtml) ──────────
+// כמו בפתרון_דפים: עובד על div זמני, לא נוגע ב-DOM
+function buildMarkedHtml(html, query) {
+  if (!html || !query) return { markedHtml: html, count: 0 };
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  const walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT, null, false);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+
+  const regexPattern = buildNiqqudRegex(query);
+
+  let count = 0;
+  nodes.forEach(n => {
+    const text = n.nodeValue;
+    regexPattern.lastIndex = 0;
+    if (!regexPattern.test(text)) return;
+    regexPattern.lastIndex = 0;
+    // split על הגרופ הלוכד (index 1 = החלק שתאם)
+    const parts = text.split(new RegExp(`(${regexPattern.source})`, regexPattern.flags));
+    const span = document.createElement('span');
+    span.innerHTML = parts.map((p, i) => {
+      const safe = p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (i % 2 === 1) { count++; return `<mark class="search-hit">${safe}</mark>`; }
+      return safe;
+    }).join('');
+    n.parentNode.replaceChild(span, n);
+  });
+
+  return { markedHtml: div.innerHTML, count };
+}
+
+// ── בניית אינדקס על כל הספר ───────────────────────────
+function buildSearchIndex(query) {
+  searchState.chapterCounts = [];
+  if (!query) { chapters.forEach(ch => { ch.markedHtml = null; }); return; }
+  chapters.forEach((ch, i) => {
+    const { markedHtml, count } = buildMarkedHtml(ch.html, query);
+    ch.markedHtml = count > 0 ? markedHtml : null;
+    if (count > 0) searchState.chapterCounts.push({ chapterIdx: i, count });
+  });
+}
+
+// ── חישוב עמוד של אלמנט — ללא לולאה ─────────────────
+// מאפס את ה-transform, מחשב מתמטית, ומשחזר.
+// מחזיר את העמוד שבו ה-mark נראה לעין (מרכז האלמנט בתוך ה-viewport).
+function pageOfElement(el) {
+  if (viewMode === 'scroll') return 0;
+
+  const savedTransform  = scrollWrap.style.transform;
+  const savedTransition = scrollWrap.style.transition;
+  scrollWrap.style.transition = 'none';
+  scrollWrap.style.transform  = 'translateX(0)';
+  void scrollWrap.offsetWidth; // force reflow
+
+  const shift    = viewport.clientWidth + getColumnGap();
+  const vpLeft   = viewport.getBoundingClientRect().left;
+  const rect     = el.getBoundingClientRect();
+
+  // מרכז האלמנט — עמיד יותר מגבול שמאלי לאלמנטים על גבולות עמודה
+  const elCenter = rect.left + rect.width / 2 - vpLeft;
+
+  // RTL CSS columns: עמוד 0 נמצא ב-elCenter ∈ [0, vw),
+  //                  עמוד 1 נמצא ב-elCenter ∈ [-shift, 0), וכו'
+  const page = Math.max(0, Math.round(-elCenter / shift));
+
+  scrollWrap.style.transform  = savedTransform;
+  void scrollWrap.offsetWidth;
+  scrollWrap.style.transition = savedTransition;
+  return page;
+}
+
+// בדיקה אם mark נראה כרגע במסך (אחרי קפיצה)
+function isMarkVisible(el) {
+  const r  = el.getBoundingClientRect();
+  const vr = viewport.getBoundingClientRect();
+  // בדוק שמרכז האלמנט בתוך ה-viewport אופקית ואנכית
+  const cx = (r.left + r.right)  / 2;
+  const cy = (r.top  + r.bottom) / 2;
+  return cx >= vr.left && cx <= vr.right && cy >= vr.top && cy <= vr.bottom;
+}
+
+// ── קפיצה ל-hit לפי אינדקס מקומי ─────────────────────
+function jumpToHit(idx) {
+  if (!searchState.hits.length) { updateSearchCounter(); return; }
+  idx = ((idx % searchState.hits.length) + searchState.hits.length) % searchState.hits.length;
+
+  searchState.hits[searchState.current]?.classList.remove('active');
+  searchState.current = idx;
+  const el = searchState.hits[idx];
+  el.classList.add('active');
+
+  if (viewMode === 'scroll') {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    const page = pageOfElement(el);
+    goToInnerPage(page, false);
+
+    // וידוא: אם אחרי הקפיצה המרק עדיין לא נראה (נפל על גבול עמודה),
+    // נסה עמוד אחד קדימה ואחד אחורה
+    requestAnimationFrame(() => {
+      if (!isMarkVisible(el)) {
+        // בדוק page+1
+        if (page + 1 < totalInner) {
+          goToInnerPage(page + 1, false);
+          requestAnimationFrame(() => {
+            if (!isMarkVisible(el) && page > 0) {
+              goToInnerPage(page, false); // חזור לחשיבה המקורית
+            }
+          });
+        }
+      }
+    });
+  }
+  updateSearchCounter();
+}
+
+// ── ניווט חיפוש קדימה / אחורה (cross-chapter) ─────────
+function prevSearchHit() {
+  if (searchState.current > 0) { jumpToHit(searchState.current - 1); return; }
+  const prevCh = [...searchState.chapterCounts].reverse().find(c => c.chapterIdx < current);
+  if (prevCh) { searchState._pendingJump = 'last'; renderChapter(prevCh.chapterIdx); }
+}
+
+function nextSearchHit() {
+  if (searchState.current < searchState.hits.length - 1) { jumpToHit(searchState.current + 1); return; }
+  const nextCh = searchState.chapterCounts.find(c => c.chapterIdx > current);
+  if (nextCh) { searchState._pendingJump = 'first'; renderChapter(nextCh.chapterIdx); }
+}
+
+// ── הפעלת חיפוש ───────────────────────────────────────
+function runSearch(query) {
+  searchState.query = query;
+  if (!query) {
+    // ניקוי: החזר HTML רגיל תוך שמירת מיקום
+    const savedPage   = innerPage;
+    const savedScroll = window.scrollY;
+    content.innerHTML = chapters[current].html || '';
+    chapters.forEach(ch => { ch.markedHtml = null; });
+    searchState.hits    = [];
+    searchState.current = -1;
+    searchState.chapterCounts = [];
+    if (viewMode === 'scroll') {
+      window.scrollTo({ top: savedScroll, behavior: 'instant' });
+    } else {
+      totalInner = Math.max(1, Math.ceil(content.scrollWidth / (viewport.clientWidth + getColumnGap())));
+      innerPage  = Math.min(savedPage, totalInner - 1);
+      applyPagePosition(false);
+      updateNav();
+    }
+    updateSearchCounter();
+    return;
+  }
+
+  buildSearchIndex(query);
+  const totalHits = searchState.chapterCounts.reduce((s, c) => s + c.count, 0);
+
+  if (totalHits === 0) {
+    searchState.hits    = [];
+    searchState.current = -1;
+    updateSearchCounter();
+    return;
+  }
+
+  // טעון את הפרק הראשון עם תוצאות (אם לא כבר שם)
+  const firstCh = searchState.chapterCounts[0].chapterIdx;
+  if (current !== firstCh) {
+    searchState._pendingJump = 'first';
+    renderChapter(firstCh);
+  } else {
+    // כבר בפרק הנכון — טען markedHtml ישירות
+    const savedPage   = innerPage;
+    const savedScroll = window.scrollY;
+    content.innerHTML = chapters[current].markedHtml || chapters[current].html;
+    searchState.hits = [...content.querySelectorAll('mark.search-hit')];
+    if (viewMode !== 'scroll') {
+      totalInner = Math.max(1, Math.ceil(content.scrollWidth / (viewport.clientWidth + getColumnGap())));
+      innerPage  = Math.min(savedPage, totalInner - 1);
+      applyPagePosition(false);
+      updateNav();
+      setTimeout(() => jumpToHit(0), 60);
+    } else {
+      window.scrollTo({ top: savedScroll, behavior: 'instant' });
+      requestAnimationFrame(() => jumpToHit(0));
+    }
+  }
+}
+
+// ── עדכון מונה ────────────────────────────────────────
+function updateSearchCounter() {
+  const counter  = document.getElementById('search-counter');
+  const input    = document.getElementById('search-input');
+  const total    = searchState.hits.length;
+  const hasQuery = !!searchState.query;
+
+  if (!hasQuery) {
+    counter.textContent = '';
+    counter.className   = '';
+    input.classList.remove('no-results');
+    document.getElementById('search-prev').disabled = true;
+    document.getElementById('search-next').disabled = true;
+    return;
+  }
+
+  // סך כל התוצאות בכל הספר
+  const globalTotal = searchState.chapterCounts.reduce((s, c) => s + c.count, 0);
+
+  if (globalTotal === 0) {
+    counter.textContent = 'לא נמצא';
+    counter.className   = 'not-found';
+    input.classList.add('no-results');
+    document.getElementById('search-prev').disabled = true;
+    document.getElementById('search-next').disabled = true;
+    return;
+  }
+
+  input.classList.remove('no-results');
+  counter.className = '';
+
+  if (searchState.current >= 0) {
+    // כמה hits יש בפרקים שלפני הנוכחי
+    const hitsBeforeCurrentChapter = searchState.chapterCounts
+      .filter(c => c.chapterIdx < current)
+      .reduce((s, c) => s + c.count, 0);
+    const globalCurrent = hitsBeforeCurrentChapter + searchState.current + 1;
+    counter.textContent = `${globalCurrent}/${globalTotal}`;
+  } else {
+    counter.textContent = `0/${globalTotal}`;
+  }
+
+  // כפתורי ניווט
+  const atFirst = searchState.current <= 0 &&
+    !searchState.chapterCounts.some(c => c.chapterIdx < current);
+  const atLast  = searchState.current >= total - 1 &&
+    !searchState.chapterCounts.some(c => c.chapterIdx > current);
+  document.getElementById('search-prev').disabled = atFirst;
+  document.getElementById('search-next').disabled = atLast;
+}
+
+// ── פתיחה / סגירה ─────────────────────────────────────
+function openSearch() {
+  document.getElementById('search-bar').classList.add('open');
+  document.getElementById('search-btn').classList.add('active');
+  setTimeout(() => document.getElementById('search-input').focus(), 50);
+}
+
+function closeSearch() {
+  document.getElementById('search-bar').classList.remove('open');
+  document.getElementById('search-btn').classList.remove('active');
+  // ניקוי ללא שינוי מיקום
+  const savedPage   = innerPage;
+  const savedScroll = window.scrollY;
+  if (searchState.query) {
+    content.innerHTML = chapters[current]?.html || '';
+    chapters.forEach(ch => { ch.markedHtml = null; });
+    if (viewMode === 'scroll') {
+      window.scrollTo({ top: savedScroll, behavior: 'instant' });
+    } else {
+      totalInner = Math.max(1, Math.ceil(content.scrollWidth / (viewport.clientWidth + getColumnGap())));
+      innerPage  = Math.min(savedPage, totalInner - 1);
+      applyPagePosition(false);
+      updateNav();
+    }
+  }
+  searchState.query         = '';
+  searchState.hits          = [];
+  searchState.current       = -1;
+  searchState.chapterCounts = [];
+  searchState._pendingJump  = null;
+  const input = document.getElementById('search-input');
+  input.value = '';
+  input.classList.remove('no-results');
+  document.getElementById('search-counter').textContent = '';
+  document.getElementById('search-prev').disabled = true;
+  document.getElementById('search-next').disabled = true;
+}
+
+// ── wire-up ────────────────────────────────────────────
+document.getElementById('search-btn').onclick   = () =>
+  document.getElementById('search-bar').classList.contains('open') ? closeSearch() : openSearch();
+document.getElementById('search-close').onclick = closeSearch;
+document.getElementById('search-prev').onclick  = prevSearchHit;
+document.getElementById('search-next').onclick  = nextSearchHit;
+
+document.getElementById('search-input').addEventListener('input', function() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => runSearch(this.value.trim()), 280);
+});
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  { e.preventDefault(); e.shiftKey ? prevSearchHit() : nextSearchHit(); }
+  if (e.key === 'Escape') { e.preventDefault(); closeSearch(); }
+});
+
+// ── Ctrl+F ─────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════
+
+// ── Init ───────────────────────────────────────────────
+loadSettings();
+updateViewModeBtns();
+applyTextAlign();
+resetToolbarTimer();
+updateFontDisplay();
+refreshLibrary();  // טעינת ספרים שמורים
+</script>
+</body>
+</html>
