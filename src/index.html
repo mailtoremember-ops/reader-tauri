@@ -619,17 +619,22 @@ body.theme-night mark.search-hit.active { background: rgba(200, 140, 40, 0.72); 
 <!-- ===== READING AREA ===== -->
 <div class="reading-area" id="reading-area" style="display:none">
   <div id="toolbar">
+    <!-- צד ימין (3 כפתורים) -->
     <div class="tb-group">
-      <button class="tb-btn" id="toc-btn" title="תוכן עניינים">☰</button>
       <button class="tb-btn" id="close-btn" title="פתח ספר אחר">✕</button>
-    </div>
-    <div id="book-title-bar"></div>
-    <div class="tb-group">
+      <button class="tb-btn" id="toc-btn" title="תוכן עניינים">☰</button>
       <button class="tb-btn" id="search-btn" title="חיפוש (Ctrl+F)" style="display:flex;align-items:center;justify-content:center;gap:0">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
         </svg>
       </button>
+    </div>
+    
+    <!-- אמצע (כותרת הספר) -->
+    <div id="book-title-bar"></div>
+    
+    <!-- צד שמאל (3 כפתורים) -->
+    <div class="tb-group">
       <button class="tb-btn" id="font-dec" title="הקטן גופן">א−</button>
       <button class="tb-btn" id="font-inc" title="הגדל גופן">א+</button>
       <button class="tb-btn" id="settings-btn" title="הגדרות">⚙</button>
