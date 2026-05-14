@@ -13,7 +13,8 @@ tauri-build = { version = "1.5", features = [] }
 tauri = { version = "1.7", features = [
   "dialog-open",
   "fs-read-file",
-  "window-all"
+  "window-all",
+  "devtools"  # <--- הוסף את השורה הזו
 ] }
 tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 serde = { version = "1", features = ["derive"] }
