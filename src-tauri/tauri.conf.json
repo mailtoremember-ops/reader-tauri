@@ -84,7 +84,8 @@
         "title": "קורא ספרים",
         "width": 960,
         "minWidth": 600,
-        "minHeight": 480
+        "minHeight": 480,
+        "visible": false    // <--- הוסף את השורה הזו
       }
     ]
   }
