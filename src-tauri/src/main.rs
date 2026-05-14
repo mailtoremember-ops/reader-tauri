@@ -4,7 +4,7 @@
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .plugin(tauri_plugin_persisted_scope::Builder::default().build())
+        .plugin(tauri_plugin_persisted_scope::init()) // <--- התיקון נמצא כאן! (init במקום Builder)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
