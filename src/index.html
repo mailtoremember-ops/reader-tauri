@@ -1845,6 +1845,14 @@ applyTextAlign();
 resetToolbarTimer();
 updateFontDisplay();
 refreshLibrary();  // טעינת ספרים שמורים
+
+// --- הקוד החדש להצגת החלון ---
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.__TAURI__) {
+    // מציג את החלון רק אחרי שהמיקום שוחזר והדף נטען
+    window.__TAURI__.window.appWindow.show();
+  }
+});
 </script>
 </body>
 </html>
