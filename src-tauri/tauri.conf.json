@@ -85,7 +85,7 @@
         "width": 960,
         "minWidth": 600,
         "minHeight": 480,
-        "visible": false    // <--- הוסף את השורה הזו
+        "visible": false
       }
     ]
   }
